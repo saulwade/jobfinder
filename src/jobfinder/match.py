@@ -6,6 +6,7 @@ Usa Haiku (barato) para el ranking masivo y prompt caching del perfil
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -21,6 +22,18 @@ load_dotenv(ROOT / ".env")
 
 BATCH_SIZE = 12
 DESC_CHARS = 700  # recorta descripciones para controlar tokens
+SENIOR_CAP = 45   # tope de score para títulos por encima del nivel junior/mid
+
+# Títulos que indican un nivel superior al del candidato (junior/mid sin gestión).
+# Nota: "staff accountant" NO es senior, por eso "staff" solo cuenta junto a roles eng.
+_SENIOR_RE = re.compile(
+    r"\b(senior|sr\.?|principal|lead|head\s+of|director|vp|vice\s+president|"
+    r"chief|founding|architect|manager|mgr)\b", re.I,
+)
+
+
+def is_above_level(title: str) -> bool:
+    return bool(_SENIOR_RE.search(title or ""))
 
 
 def _render_profile(profile: dict) -> str:
@@ -32,23 +45,33 @@ candidato con vacantes. Debes ser estricto y realista.
 # PERFIL DEL CANDIDATO
 {yaml.safe_dump(profile, allow_unicode=True, sort_keys=False)}
 
+# REGLA DURA DE SENIORITY (aplícala PRIMERO)
+El candidato es JUNIOR/MID con ~2 años de experiencia (incluye prácticas) y SIN gestión
+de equipos. Si el título o la descripción contienen señales de rol superior —
+"Senior", "Sr.", "Lead", "Principal", "Staff", "Manager", "Head of", "Director",
+"VP", "Chief", "Founding", o piden 4+ años de experiencia o gestionar un equipo —
+entonces el score MÁXIMO permitido es 45 (es decir, descártalo), sin importar qué tan
+bien encajen las skills. Roles ideales: "Analyst", "Associate", "Junior", "Entry",
+"Coordinator", "Specialist" sin requisito de seniority alto.
+
 # CRITERIOS DE EVALUACIÓN (score 0-100)
-Evalúa cada vacante contra el perfil considerando:
+Si pasa la regla de seniority, evalúa:
 - Encaje de rol y skills (finanzas + tech, Python/SQL, FP&A, automatización, datos).
-- Seniority: el candidato es junior/mid. Penaliza fuerte roles senior/director/VP/lead
-  o que pidan 5+ años. Penaliza roles totalmente ajenos (ej. enfermería, ventas puras).
 - Remoto real: debe ser remoto. Penaliza on-site/híbrido.
 - Geografía: debe poder contratar desde México/LATAM o ser worldwide. Penaliza
   vacantes restringidas a "US only", "EU only", requisito de visa/clearance.
 - Sueldo: bonus si cumple el piso de {t['min_salary_usd_year']} USD/año o más.
 - Idioma: el candidato habla inglés C1 y español nativo. Penaliza vacantes que exijan
   alemán/francés nativo u otros idiomas que no domina.
+- TAMAÑO DE EMPRESA: NO penalices por tamaño. Startups, pymes y grandes empresas son
+  TODAS bienvenidas por igual si el rol encaja con el nivel y las skills.
+- Penaliza roles totalmente ajenos (ej. enfermería, ventas puras, ingeniería de software senior).
 
 # RANGOS DE SCORE
-- 85-100: encaje excelente, debería aplicar ya.
-- 70-84: buen encaje, vale la pena aplicar.
+- 85-100: encaje excelente y nivel correcto (junior/mid), aplicar ya.
+- 70-84: buen encaje y nivel correcto, vale la pena aplicar.
 - 50-69: encaje parcial, dudoso.
-- 0-49: mal encaje, descartar.
+- 0-49: mal encaje o nivel demasiado alto, descartar.
 
 # FORMATO DE SALIDA
 Devuelve SOLO un array JSON válido, sin texto adicional, con un objeto por vacante:
@@ -98,7 +121,11 @@ def _parse_json_array(text: str) -> list[dict]:
         return []
 
 
-def run(limit: int | None = None, verbose: bool = True) -> dict:
+# estados que NO se deben sobrescribir al re-evaluar
+PROTECTED = ("applied", "interview", "rejected")
+
+
+def run(limit: int | None = None, rescore: bool = False, verbose: bool = True) -> dict:
     cfg = load_config()
     profile = load_profile()
     model = cfg["ai"].get("match_model", "claude-haiku-4-5")
@@ -108,7 +135,12 @@ def run(limit: int | None = None, verbose: bool = True) -> dict:
     init_db(db_path)
     conn = connect(db_path)
 
-    q = "SELECT * FROM jobs WHERE match_score IS NULL ORDER BY id"
+    if rescore:
+        # re-evalúa todo salvo lo que ya está en un estado terminal/avanzado
+        q = ("SELECT * FROM jobs WHERE status NOT IN "
+             "('applied','interview','rejected') ORDER BY id")
+    else:
+        q = "SELECT * FROM jobs WHERE match_score IS NULL ORDER BY id"
     if limit:
         q += f" LIMIT {int(limit)}"
     rows = conn.execute(q).fetchall()
@@ -135,6 +167,9 @@ def run(limit: int | None = None, verbose: bool = True) -> dict:
             if jid not in by_id:
                 continue
             score = int(res.get("score", 0))
+            # tope determinista por seniority (no depende del modelo)
+            if is_above_level(by_id[jid]["title"]) and score > SENIOR_CAP:
+                score = SENIOR_CAP
             reasons = json.dumps(
                 {"reasons": res.get("reasons", ""), "flags": res.get("flags", [])},
                 ensure_ascii=False,
@@ -164,7 +199,8 @@ def run(limit: int | None = None, verbose: bool = True) -> dict:
 
 if __name__ == "__main__":
     lim = None
+    rescore = "--rescore" in sys.argv
     for a in sys.argv[1:]:
         if a.startswith("--limit="):
             lim = int(a.split("=")[1])
-    run(limit=lim)
+    run(limit=lim, rescore=rescore)
