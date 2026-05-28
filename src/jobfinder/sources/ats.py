@@ -80,7 +80,51 @@ def _ashby(slug: str) -> list[Job]:
     return out
 
 
-_PLATFORMS = {"greenhouse": _greenhouse, "lever": _lever, "ashby": _ashby}
+def _smartrecruiters(slug: str) -> list[Job]:
+    url = f"https://api.smartrecruiters.com/v1/companies/{slug}/postings?limit=100"
+    r = http_get(url)
+    if r.status_code != 200:
+        return []
+    out = []
+    for j in r.json().get("content", []):
+        loc = j.get("location", {}) or {}
+        loc_str = ", ".join(x for x in (loc.get("city"), loc.get("country")) if x)
+        if loc.get("remote"):
+            loc_str = (loc_str + " (Remote)").strip()
+        out.append(Job(
+            source="smartrecruiters", external_id=str(j.get("id", "")),
+            url=f"https://jobs.smartrecruiters.com/{slug}/{j.get('id','')}",
+            title=j.get("name", ""), company=slug.replace("-", " ").title(),
+            location=loc_str or "Remote",
+            description=clean((j.get("jobAd", {}) or {}).get("sections", "")),
+            posted_at=to_iso(j.get("releasedDate")),
+        ).finalize())
+    return out
+
+
+def _recruitee(slug: str) -> list[Job]:
+    url = f"https://{slug}.recruitee.com/api/offers/"
+    r = http_get(url)
+    if r.status_code != 200:
+        return []
+    out = []
+    for j in r.json().get("offers", []):
+        out.append(Job(
+            source="recruitee", external_id=str(j.get("id", "")),
+            url=j.get("careers_url") or j.get("url", ""), title=j.get("title", ""),
+            company=slug.replace("-", " ").title(),
+            location=j.get("location") or j.get("city") or "Remote",
+            description=clean(j.get("description", "")),
+            tags=clean(str(j.get("department", ""))),
+            posted_at=to_iso(j.get("published_at")),
+        ).finalize())
+    return out
+
+
+_PLATFORMS = {
+    "greenhouse": _greenhouse, "lever": _lever, "ashby": _ashby,
+    "smartrecruiters": _smartrecruiters, "recruitee": _recruitee,
+}
 
 
 def fetch(query: str = "") -> list[Job]:

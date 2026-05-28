@@ -14,7 +14,34 @@ ROOT = Path(__file__).resolve().parents[2]
 
 # Fuentes de alto volumen (boards de empresas): se pre-filtran por título para
 # no ingerir ni evaluar miles de roles de ingeniería irrelevantes.
-HIGH_VOLUME = {"greenhouse", "lever", "ashby"}
+HIGH_VOLUME = {"greenhouse", "lever", "ashby", "smartrecruiters", "recruitee"}
+
+# Fuentes que SOLO publican trabajos remotos: se confía en ellas como remotas.
+INHERENTLY_REMOTE = {
+    "remoteok", "remotive", "weworkremotely", "jobicy",
+    "workingnomads", "jobspresso", "himalayas",
+}
+# Señales de remoto en texto libre.
+_REMOTE_RE = re.compile(
+    r"\bremote\b|\banywhere\b|distributed|work from home|\bwfh\b|"
+    r"worldwide|fully remote|remote-first|remote first", re.I,
+)
+# Señales de presencial/híbrido que descalifican aunque digan "remote".
+_ONSITE_RE = re.compile(r"\bon[\s-]?site\b|in[\s-]?office|hybrid", re.I)
+
+
+def is_remote(job) -> bool:
+    """Estricto: solo deja pasar trabajos realmente remotos."""
+    loc_title = f"{job.title} {job.location} {job.tags}".lower()
+    if _ONSITE_RE.search(loc_title):
+        return False
+    if job.source in INHERENTLY_REMOTE:
+        return True
+    # arbeitnow y themuse traen un flag de remoto confiable desde la fuente
+    if job.source in ("arbeitnow", "themuse"):
+        return job.remote == 1 or bool(_REMOTE_RE.search(loc_title))
+    # boards de empresas (ATS): exige señal explícita de remoto en título/ubicación
+    return bool(_REMOTE_RE.search(loc_title))
 _RELEVANT_TITLE = re.compile(
     r"financ|fp&a|account|payroll|revenue|treasury|controller|\banalyst\b|"
     r"\bdata\b|business operations|bizops|revops|report|fintech|billing|audit|"
@@ -26,10 +53,9 @@ def _passes_filters(job, profile) -> bool:
     target = profile["target"]
     blob = f"{job.title} {job.location} {job.description} {job.tags}".lower()
 
-    # remoto: si la fuente marca remote=0 explícito y pide on-site, descarta
-    if target.get("remote_only") and job.remote == 0:
-        if "remote" not in blob:
-            return False
+    # remoto estricto: si no es claramente remoto, descarta
+    if target.get("remote_only") and not is_remote(job):
+        return False
 
     # excluye ruido
     for kw in target.get("exclude_keywords", []):
