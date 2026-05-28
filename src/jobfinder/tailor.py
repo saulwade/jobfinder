@@ -118,13 +118,16 @@ def run(limit: int | None = None, job_id: int | None = None, verbose: bool = Tru
     init_db(db_path)
     conn = connect(db_path)
 
+    threshold = cfg["search"].get("min_score_to_apply", 65)
     if job_id:
         q, args = "SELECT * FROM jobs WHERE id=?", (job_id,)
     else:
-        q = "SELECT * FROM jobs WHERE status='matched' ORDER BY match_score DESC"
+        # solo adapta matches que superen el umbral (no quema tokens en score bajo)
+        q = ("SELECT * FROM jobs WHERE status='matched' AND match_score >= ? "
+             "ORDER BY match_score DESC")
+        args = (threshold,)
         if limit:
             q += f" LIMIT {int(limit)}"
-        args = ()
     jobs = conn.execute(q, args).fetchall()
     if not jobs:
         print("No hay vacantes en estado 'matched' para adaptar.")

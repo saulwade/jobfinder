@@ -16,7 +16,7 @@ ai:
 search:
   remote_only: true
   weekly_application_target: 30
-  min_score_to_apply: 70        # 0-100, umbral para entrar al pipeline de aplicación
+  min_score_to_apply: 65        # 0-100, umbral para entrar al pipeline de aplicación
 
 # Fuentes de vacantes (Fase 1). Todas con API/RSS gratis.
 sources:

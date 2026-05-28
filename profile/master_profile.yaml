@@ -23,11 +23,19 @@ target:
     - Data / Finance Analyst
     - Revenue / Business Operations Analyst
     - Finance Systems Analyst
+    - Operations Analyst
+    - Business Analyst
+    - Accounting Analyst / Staff Accountant
+    - Accounts Payable / Receivable Analyst
+    - Bookkeeper
+    - Revenue Operations (RevOps) Analyst
+    - Pricing / Strategy Analyst
+    - Payroll Analyst
   seniority: [junior, mid]            # confirmado: junior + mid
   remote_only: true
   geo_scope: global                   # remoto desde cualquier país que contrate en MX/LATAM
   must_hire_from: [Mexico, LATAM, Worldwide]
-  geo_strict: true                    # solo MX/LATAM/worldwide; descarta US/EU-only
+  geo_strict: false                   # amplio: incluye US-remote (contratan LATAM por contractor)
   min_salary_usd_year: 24000          # piso confirmado
   preferred_salary_usd_year: 36000    # objetivo
   currency_pref: USD
@@ -151,3 +159,16 @@ matching_keywords:
   - automation
   - reporting analyst
   - fintech
+  - operations analyst
+  - business analyst
+  - accounting
+  - staff accountant
+  - accounts payable
+  - accounts receivable
+  - bookkeeper
+  - bookkeeping
+  - payroll
+  - billing
+  - revops
+  - pricing analyst
+  - strategy analyst
