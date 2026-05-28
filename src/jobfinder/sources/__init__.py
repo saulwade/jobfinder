@@ -12,6 +12,7 @@ from . import (
     jobspresso,
     workingnomads,
     ats,
+    adzuna,
 )
 
 # nombre en config.yaml -> función fetch(query: str) -> list[Job]
@@ -26,4 +27,5 @@ REGISTRY = {
     "jobspresso": jobspresso.fetch,
     "workingnomads": workingnomads.fetch,
     "ats": ats.fetch,
+    "adzuna": adzuna.fetch,
 }

@@ -30,6 +30,30 @@ _REMOTE_RE = re.compile(
 _ONSITE_RE = re.compile(r"\bon[\s-]?site\b|in[\s-]?office|hybrid", re.I)
 
 
+# Geografía: contratable desde México/LATAM o worldwide.
+_GEO_ALLOW = re.compile(
+    r"worldwide|anywhere|global|latam|latin america|americas|mexico|méxico|"
+    r"north america", re.I,
+)
+_GEO_BLOCK = re.compile(
+    r"\bus only\b|u\.s\.? only|united states only|usa only|\bus[-\s]based\b|"
+    r"authorized to work in the (united states|us)|\beu only\b|europe only|"
+    r"uk only|emea only|india only|canada only|"
+    r"remote\s*[-,(]?\s*us\b|\bus\b\s*remote|united states\s*[-,]\s*remote|"
+    r"must be (located|based) in", re.I,
+)
+
+
+def geo_ok(job) -> bool:
+    """Deja pasar worldwide/LATAM/México o sin restricción; bloquea US/EU-only."""
+    blob = f"{job.location} {job.title} {job.tags}".lower()
+    if _GEO_ALLOW.search(blob):
+        return True
+    if _GEO_BLOCK.search(blob):
+        return False
+    return True  # sin geo explícita -> se asume abierta
+
+
 def is_remote(job) -> bool:
     """Estricto: solo deja pasar trabajos realmente remotos."""
     loc_title = f"{job.title} {job.location} {job.tags}".lower()
@@ -55,6 +79,10 @@ def _passes_filters(job, profile) -> bool:
 
     # remoto estricto: si no es claramente remoto, descarta
     if target.get("remote_only") and not is_remote(job):
+        return False
+
+    # geografía: solo lo que contrate desde México/LATAM/worldwide
+    if target.get("geo_strict", True) and not geo_ok(job):
         return False
 
     # excluye ruido
