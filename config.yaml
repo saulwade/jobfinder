@@ -31,7 +31,15 @@ sources:
   themuse:     { enabled: true,  type: api }
   jobspresso:  { enabled: true,  type: rss }
   workingnomads: { enabled: true, type: api }
+  ats:         { enabled: true,  type: api }   # boards de empresas (Greenhouse/Lever/Ashby)
 
 output:
   cv_dir: output/cv
   cover_letters_dir: output/cover_letters
+
+# Scheduler (Fase 5): cuándo corre el pipeline solo
+schedule:
+  timezone: America/Monterrey
+  days: "*"        # '*' = diario; o 'mon-fri', 'mon', etc.
+  hour: 8
+  minute: 0

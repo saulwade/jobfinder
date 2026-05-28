@@ -1,0 +1,26 @@
+# Empresas cuyas vacantes se leen directo de su ATS (API pública, sin key).
+# Amplía estas listas con el "slug" de cada empresa:
+#   Greenhouse: boards.greenhouse.io/<slug>
+#   Lever:      jobs.lever.co/<slug>
+#   Ashby:      jobs.ashbyhq.com/<slug>
+# Foco: fintech / startups remotas que suelen contratar desde LATAM/global.
+
+greenhouse:
+  - coinbase
+  - robinhood
+  - brex
+  - gusto
+  - databricks
+  - gitlab
+  - reddit
+  - affirm
+  - stripe
+
+lever:
+  - kavak
+
+ashby:
+  - deel
+  - belvo
+  - kueski
+  - runway

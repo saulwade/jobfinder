@@ -1,6 +1,7 @@
 """Orquestador de la Fase 1: fetch -> filtra -> dedupe -> guarda en SQLite."""
 from __future__ import annotations
 
+import re
 import sys
 import traceback
 from pathlib import Path
@@ -10,6 +11,15 @@ from .profile import load_config, load_profile
 from .sources import REGISTRY
 
 ROOT = Path(__file__).resolve().parents[2]
+
+# Fuentes de alto volumen (boards de empresas): se pre-filtran por título para
+# no ingerir ni evaluar miles de roles de ingeniería irrelevantes.
+HIGH_VOLUME = {"greenhouse", "lever", "ashby"}
+_RELEVANT_TITLE = re.compile(
+    r"financ|fp&a|account|payroll|revenue|treasury|controller|\banalyst\b|"
+    r"\bdata\b|business operations|bizops|revops|report|fintech|billing|audit|"
+    r"\btax\b|bookkeep|strategy|operations analyst|finance", re.I,
+)
 
 
 def _passes_filters(job, profile) -> bool:
@@ -25,6 +35,10 @@ def _passes_filters(job, profile) -> bool:
     for kw in target.get("exclude_keywords", []):
         if kw.lower() in blob:
             return False
+
+    # boards de empresas: solo títulos de finanzas/datos/operaciones
+    if job.source in HIGH_VOLUME and not _RELEVANT_TITLE.search(job.title):
+        return False
 
     return True
 

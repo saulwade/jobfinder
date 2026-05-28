@@ -11,6 +11,7 @@ from . import (
     themuse,
     jobspresso,
     workingnomads,
+    ats,
 )
 
 # nombre en config.yaml -> función fetch(query: str) -> list[Job]
@@ -24,4 +25,5 @@ REGISTRY = {
     "themuse": themuse.fetch,
     "jobspresso": jobspresso.fetch,
     "workingnomads": workingnomads.fetch,
+    "ats": ats.fetch,
 }
