@@ -30,6 +30,7 @@ sources:
   usajobs:     { enabled: false, type: api }   # requiere email + API key gratis
   themuse:     { enabled: true,  type: api }
   jobspresso:  { enabled: true,  type: rss }
+  workingnomads: { enabled: true, type: api }
 
 output:
   cv_dir: output/cv
