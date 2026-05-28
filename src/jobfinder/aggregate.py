@@ -66,10 +66,13 @@ def is_remote(job) -> bool:
         return job.remote == 1 or bool(_REMOTE_RE.search(loc_title))
     # boards de empresas (ATS): exige señal explícita de remoto en título/ubicación
     return bool(_REMOTE_RE.search(loc_title))
+# Títulos relevantes a las SKILLS del candidato (datos/análisis/finanzas/automatización),
+# no solo finanzas. El matcher de IA luego puntúa por solapamiento real de skills.
 _RELEVANT_TITLE = re.compile(
     r"financ|fp&a|account|payroll|revenue|treasury|controller|\banalyst\b|"
-    r"\bdata\b|business operations|bizops|revops|report|fintech|billing|audit|"
-    r"\btax\b|bookkeep|strategy|operations analyst|finance", re.I,
+    r"\bdata\b|analytics|business operations|\bops\b|operations|bizops|revops|"
+    r"report|fintech|billing|audit|\btax\b|bookkeep|strategy|intelligence|"
+    r"\bbi\b|automation|insights|pricing|forecast|planning|finance", re.I,
 )
 
 

@@ -6,6 +6,7 @@ Usa Haiku (barato) para el ranking masivo y prompt caching del perfil
 from __future__ import annotations
 
 import json
+import os.path
 import re
 import sys
 from pathlib import Path
@@ -45,33 +46,42 @@ candidato con vacantes. Debes ser estricto y realista.
 # PERFIL DEL CANDIDATO
 {yaml.safe_dump(profile, allow_unicode=True, sort_keys=False)}
 
-# REGLA DURA DE SENIORITY (aplícala PRIMERO)
-El candidato es JUNIOR/MID con ~2 años de experiencia (incluye prácticas) y SIN gestión
-de equipos. Si el título o la descripción contienen señales de rol superior —
-"Senior", "Sr.", "Lead", "Principal", "Staff", "Manager", "Head of", "Director",
-"VP", "Chief", "Founding", o piden 4+ años de experiencia o gestionar un equipo —
-entonces el score MÁXIMO permitido es 45 (es decir, descártalo), sin importar qué tan
-bien encajen las skills. Roles ideales: "Analyst", "Associate", "Junior", "Entry",
-"Coordinator", "Specialist" sin requisito de seniority alto.
+# CÓMO EVALUAR: POR SKILLS, NO POR EL TÍTULO
+Lo que importa es el SOLAPAMIENTO DE SKILLS entre lo que pide la vacante y lo que el
+candidato sabe hacer. NO importa el nombre/departamento de la vacante. Un rol de
+"Data Analyst", "Operations Analyst", "BI Analyst", "Automation Specialist",
+"Analytics", "Financial Analyst", "RevOps", "Business Analyst", etc., todos cuentan
+si usan las skills del candidato.
 
-# CRITERIOS DE EVALUACIÓN (score 0-100)
-Si pasa la regla de seniority, evalúa:
-- Encaje de rol y skills (finanzas + tech, Python/SQL, FP&A, automatización, datos).
-- Remoto real: debe ser remoto. Penaliza on-site/híbrido.
-- Geografía: debe poder contratar desde México/LATAM o ser worldwide. Penaliza
-  vacantes restringidas a "US only", "EU only", requisito de visa/clearance.
-- Sueldo: bonus si cumple el piso de {t['min_salary_usd_year']} USD/año o más.
-- Idioma: el candidato habla inglés C1 y español nativo. Penaliza vacantes que exijan
-  alemán/francés nativo u otros idiomas que no domina.
-- TAMAÑO DE EMPRESA: NO penalices por tamaño. Startups, pymes y grandes empresas son
-  TODAS bienvenidas por igual si el rol encaja con el nivel y las skills.
-- Penaliza roles totalmente ajenos (ej. enfermería, ventas puras, ingeniería de software senior).
+Skills del candidato (úsalas como referencia principal):
+Python, SQL, Excel avanzado, Power BI, Tableau, Databricks, análisis y modelado de
+datos, pipelines de datos, modelado financiero, FP&A, reporting/dashboards/KPIs,
+automatización (n8n, Make, Power Automate, no-code), workflows de IA/LLM (OpenAI/Claude),
+QuickBooks, reconciliaciones, operaciones financieras, unit economics, pricing.
+
+# REGLA DE SENIORITY (aplícala primero)
+El candidato es JUNIOR/MID (~2 años, incluye prácticas) y SIN gestión de equipos.
+Si la vacante es claramente superior — "Senior", "Sr.", "Lead", "Principal", "Staff",
+"Manager", "Head of", "Director", "VP", "Chief", "Founding", o pide 4+ años o liderar
+un equipo — el score MÁXIMO es 45 (descártala). Ideales: Analyst, Associate, Junior,
+Entry, Coordinator, Specialist.
+
+# CRITERIOS (score 0-100), una vez pasada la regla de seniority
+- SOLAPAMIENTO DE SKILLS (lo más importante): qué tanto de lo que pide la vacante
+  el candidato ya lo sabe hacer. Más skills en común = score más alto.
+- Remoto: debe ser remoto (las no-remotas ya se filtraron antes).
+- Idioma: inglés C1 y español nativo; penaliza si exigen otro idioma (alemán, francés…).
+- Geografía: si está restringida a un país que no es México/LATAM/worldwide, NO la
+  descartes, solo bájale un poco y marca la bandera "geo_restricted".
+- Tamaño de empresa: NO penalices (startup/pyme/grande, todas valen).
+- Penaliza solo roles que NO usan sus skills (ej. enfermería, ventas puras, soporte,
+  ingeniería de software pesada que requiere CS/system design que él no tiene).
 
 # RANGOS DE SCORE
-- 85-100: encaje excelente y nivel correcto (junior/mid), aplicar ya.
-- 70-84: buen encaje y nivel correcto, vale la pena aplicar.
-- 50-69: encaje parcial, dudoso.
-- 0-49: mal encaje o nivel demasiado alto, descartar.
+- 85-100: la vacante pide justo las skills que él tiene, nivel correcto. Aplicar ya.
+- 70-84: buen solapamiento de skills, nivel correcto. Vale la pena aplicar.
+- 50-69: solapamiento parcial de skills.
+- 0-49: pocas skills en común o nivel demasiado alto.
 
 # FORMATO DE SALIDA
 Devuelve SOLO un array JSON válido, sin texto adicional, con un objeto por vacante:
@@ -136,9 +146,10 @@ def run(limit: int | None = None, rescore: bool = False, verbose: bool = True) -
     conn = connect(db_path)
 
     if rescore:
-        # re-evalúa todo salvo lo que ya está en un estado terminal/avanzado
+        # re-evalúa el pool remoto; no toca terminales ni las marcadas no-remotas
         q = ("SELECT * FROM jobs WHERE status NOT IN "
-             "('applied','interview','rejected') ORDER BY id")
+             "('applied','interview','rejected') "
+             "AND COALESCE(notes,'') != 'no remoto' ORDER BY id")
     else:
         q = "SELECT * FROM jobs WHERE match_score IS NULL ORDER BY id"
     if limit:
@@ -174,7 +185,12 @@ def run(limit: int | None = None, rescore: bool = False, verbose: bool = True) -
                 {"reasons": res.get("reasons", ""), "flags": res.get("flags", [])},
                 ensure_ascii=False,
             )
-            status = "matched" if score >= threshold else "skipped"
+            if score >= threshold:
+                # preserva 'tailored' si ya tiene CV generado (no rehacer trabajo)
+                cv = by_id[jid]["cv_path"]
+                status = "tailored" if cv and os.path.exists(cv) else "matched"
+            else:
+                status = "skipped"
             conn.execute(
                 "UPDATE jobs SET match_score=?, match_reasons=?, "
                 "match_at=datetime('now'), status=?, updated_at=datetime('now') "
