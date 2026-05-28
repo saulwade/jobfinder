@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+data/*.db
+output/cv/*
+output/cover_letters/*
+!output/cv/.gitkeep
+!output/cover_letters/.gitkeep

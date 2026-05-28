@@ -1,0 +1,152 @@
+# =============================================================
+# MASTER PROFILE — Saul Sharif Wade Silva
+# Fuente de verdad para matching y adaptación de CV por vacante.
+# Editable a mano. Las secciones marcadas [REVISAR] necesitan tu confirmación.
+# =============================================================
+
+personal:
+  full_name: Saul Sharif Wade Silva
+  location: Monterrey, Mexico
+  timezone: America/Monterrey   # CST (UTC-6)
+  phone: "+52 922 157 4450"
+  email: saulwade29@gmail.com
+  linkedin: linkedin.com/in/saulwadesilva
+  work_authorization: Mexico   # contratable como remoto desde México (contractor/EOR)
+
+target:
+  # Lo que buscamos en cada búsqueda
+  role_focus: "Finance + Tech"
+  titles:
+    - Financial Operations Analyst
+    - Financial Analyst (FP&A)
+    - Finance Automation Analyst
+    - Data / Finance Analyst
+    - Revenue / Business Operations Analyst
+    - Finance Systems Analyst
+  seniority: [junior, mid]            # confirmado: junior + mid
+  remote_only: true
+  geo_scope: global                   # remoto desde cualquier país que contrate en MX/LATAM
+  must_hire_from: [Mexico, LATAM, Worldwide]
+  min_salary_usd_year: 24000          # piso confirmado
+  preferred_salary_usd_year: 36000    # objetivo
+  currency_pref: USD
+  weekly_application_target: 30
+  exclude_keywords:                   # filtra ruido
+    - unpaid
+    - commission only
+    - on-site
+    - hybrid
+    - US citizen only
+    - clearance
+
+skills:
+  core:
+    - Financial Operations
+    - FP&A (Financial Planning & Analysis)
+    - Month-end close
+    - Payroll reconciliation
+    - Unit economics / margin analysis
+    - Pricing modeling
+    - Cost allocation
+    - Financial reporting
+  technical:
+    - Python
+    - SQL
+    - Power BI
+    - Tableau
+    - Excel (advanced)
+    - Databricks
+    - Power Automate
+    - Data pipelines / data modeling
+  automation_ai:
+    - n8n
+    - Make
+    - LLM workflows / prompting
+    - OpenAI / Claude API
+    - No-code automation
+    - AI-assisted reporting
+  tools:
+    - QuickBooks
+    - VS Code
+    - Cursor
+    - Notion
+    - Google Sheets
+    - SharePoint
+
+experience:
+  - company: JULIUS Connected 2 Grow
+    location: Miami, FL (remote)
+    title: Financial Operations Analyst
+    start: 2026-03
+    end: present
+    context: Nearshore marketing & digital growth agency serving US clients.
+    highlights:
+      - Led month-end close in QuickBooks; payroll reconciliation and financial statements.
+      - Built profitability models tracking margins, pricing, and unit economics.
+      - Designed & automated finance workflows (staffing calculator, pricing tools, reporting) with AI + no-code, cutting manual effort.
+      - Built internal tools for payroll, cost allocation, and client billing.
+      - Drove process improvements scaling operational capacity.
+      - Developed AI-assisted reporting/analysis workflows.
+
+  - company: Schneider Electric Hub
+    location: Monterrey, Mexico
+    title: Data Finance Intern
+    start: 2025-03
+    end: 2025-07
+    context: Global energy management & automation leader.
+    highlights:
+      - Automated recurring reporting (Tableau, Power Automate, pipelines), cutting manual work 20% and reporting cycles 2-3 days.
+      - Built KPI dashboards across finance & operations.
+      - Consolidated 6+ data sources covering $100M+ USD in operational/financial activity.
+      - Deployed dashboards tracking 20+ KPIs used weekly by 15-20 stakeholders.
+      - Identified 3-5% cost optimization opportunities.
+      - Standardized KPI definitions, cutting data inconsistencies ~25%.
+
+  - company: The Home Depot México
+    location: Monterrey, Mexico
+    title: Asset Protection Analyst Intern
+    start: 2024-08
+    end: 2025-03
+    context: Largest home improvement retailer in Mexico.
+    highlights:
+      - Analyzed shrinkage/loss/inventory across 120+ stores ($1B+ MXN annual exposure).
+      - Built Excel & Power BI dashboards for monthly executive/regional reviews.
+      - Supported initiatives improving shrinkage indicators 12%.
+      - Processed 100k+ transaction records/month with Artus, Python, SQL.
+      - Trend/segmentation/outlier analysis flagging top 10-15% risk stores.
+
+projects:
+  - name: AI-Powered Staffing & Pricing Calculator
+    highlights:
+      - Tool to compute real employee cost, client pricing, and margins across countries.
+      - Automated payroll burden, operational cost, and target pricing logic.
+      - AI-assisted pricing strategy suggestions based on cost/margin targets.
+  - name: Automated Financial Reporting Workflow (n8n + GPT)
+    highlights:
+      - End-to-end automation turning raw financial data into client-ready monthly reports.
+      - Data cleaning, metric calc, anomaly detection, AI-generated insights.
+      - Executive summaries, risk alerts, recommendations; integrated Google Sheets + AI + email/docs.
+
+education:
+  - degree: Bachelor's in Finance
+    school: Tecnologico de Monterrey
+    location: Monterrey, Mexico
+    graduation: 2026-06
+
+languages:
+  - { language: Spanish, level: Native }
+  - { language: English, level: C1 }
+  - { language: French, level: Basic }
+
+# Keywords adicionales para el matcher (sinónimos / términos que recruiters usan)
+matching_keywords:
+  - financial analyst
+  - finance analyst
+  - FP&A
+  - financial operations
+  - business operations
+  - revenue operations
+  - data analyst finance
+  - automation
+  - reporting analyst
+  - fintech

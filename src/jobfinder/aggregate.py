@@ -1,0 +1,98 @@
+"""Orquestador de la Fase 1: fetch -> filtra -> dedupe -> guarda en SQLite."""
+from __future__ import annotations
+
+import sys
+import traceback
+from pathlib import Path
+
+from .db import connect, init_db
+from .profile import load_config, load_profile
+from .sources import REGISTRY
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def _passes_filters(job, profile) -> bool:
+    target = profile["target"]
+    blob = f"{job.title} {job.location} {job.description} {job.tags}".lower()
+
+    # remoto: si la fuente marca remote=0 explícito y pide on-site, descarta
+    if target.get("remote_only") and job.remote == 0:
+        if "remote" not in blob:
+            return False
+
+    # excluye ruido
+    for kw in target.get("exclude_keywords", []):
+        if kw.lower() in blob:
+            return False
+
+    return True
+
+
+def _upsert(conn, job) -> bool:
+    """Inserta si el fingerprint es nuevo. Devuelve True si insertó."""
+    row = job.as_row()
+    cols = ", ".join(row.keys())
+    placeholders = ", ".join(f":{k}" for k in row)
+    try:
+        conn.execute(
+            f"INSERT INTO jobs ({cols}) VALUES ({placeholders})", row
+        )
+        return True
+    except Exception:  # UNIQUE(fingerprint) -> duplicado
+        return False
+
+
+def run(verbose: bool = True) -> dict:
+    cfg = load_config()
+    profile = load_profile()
+    db_path = ROOT / cfg["database"]["path"]
+    init_db(db_path)
+    conn = connect(db_path)
+
+    enabled = [
+        name for name, s in cfg["sources"].items()
+        if s.get("enabled") and name in REGISTRY
+    ]
+    query = profile["target"]["role_focus"].split("+")[0].strip().lower()  # "finance"
+
+    stats = {"fetched": 0, "kept": 0, "inserted": 0, "by_source": {}, "errors": {}}
+
+    for name in enabled:
+        try:
+            jobs = REGISTRY[name](query)
+        except Exception as e:
+            stats["errors"][name] = str(e)
+            if verbose:
+                print(f"  [{name}] ERROR: {e}")
+                traceback.print_exc(limit=1)
+            continue
+
+        kept = ins = 0
+        for job in jobs:
+            stats["fetched"] += 1
+            if not _passes_filters(job, profile):
+                continue
+            kept += 1
+            stats["kept"] += 1
+            if _upsert(conn, job):
+                ins += 1
+                stats["inserted"] += 1
+        conn.commit()
+        stats["by_source"][name] = {"fetched": len(jobs), "kept": kept, "new": ins}
+        if verbose:
+            print(f"  [{name}] fetched={len(jobs)} kept={kept} new={ins}")
+
+    total = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
+    conn.close()
+    stats["db_total"] = total
+    if verbose:
+        print(
+            f"\nResumen: {stats['fetched']} traídas, {stats['kept']} relevantes, "
+            f"{stats['inserted']} nuevas. Total en DB: {total}"
+        )
+    return stats
+
+
+if __name__ == "__main__":
+    run(verbose="-q" not in sys.argv)

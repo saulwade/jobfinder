@@ -1,0 +1,36 @@
+# Configuración global del job finder. 100% local.
+database:
+  path: data/jobs.db
+
+profile:
+  master_profile: profile/master_profile.yaml
+  master_cv: profile/master_cv.md
+
+ai:
+  provider: anthropic
+  model: claude-opus-4-7        # matching/tailoring de alta calidad
+  match_model: claude-haiku-4-5-20251001   # ranking masivo barato
+  use_prompt_caching: true
+  # API key se lee de la variable de entorno ANTHROPIC_API_KEY (.env)
+
+search:
+  remote_only: true
+  weekly_application_target: 30
+  min_score_to_apply: 70        # 0-100, umbral para entrar al pipeline de aplicación
+
+# Fuentes de vacantes (Fase 1). Todas con API/RSS gratis.
+sources:
+  remoteok:    { enabled: true,  type: api }
+  remotive:    { enabled: true,  type: api }
+  weworkremotely: { enabled: true, type: rss }
+  arbeitnow:   { enabled: true,  type: api }
+  himalayas:   { enabled: true,  type: api }
+  jobicy:      { enabled: true,  type: api }
+  adzuna:      { enabled: false, type: api }   # requiere APP_ID + APP_KEY gratis
+  usajobs:     { enabled: false, type: api }   # requiere email + API key gratis
+  themuse:     { enabled: true,  type: api }
+  jobspresso:  { enabled: true,  type: rss }
+
+output:
+  cv_dir: output/cv
+  cover_letters_dir: output/cover_letters
