@@ -8,8 +8,8 @@ profile:
 
 ai:
   provider: anthropic
-  model: claude-opus-4-7        # matching/tailoring de alta calidad
-  match_model: claude-haiku-4-5-20251001   # ranking masivo barato
+  model: claude-sonnet-4-6      # tailoring CV/carta (calidad alta, ~3x mas barato que Opus)
+  match_model: claude-haiku-4-5   # ranking masivo barato
   use_prompt_caching: true
   # API key se lee de la variable de entorno ANTHROPIC_API_KEY (.env)
 
