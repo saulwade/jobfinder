@@ -1,11 +1,8 @@
 # Empresas cuyas vacantes se leen directo de su ATS (API pública, sin key).
-# Amplía estas listas con el "slug" de cada empresa:
-#   Greenhouse:      boards.greenhouse.io/<slug>
-#   Lever:           jobs.lever.co/<slug>
-#   Ashby:           jobs.ashbyhq.com/<slug>
-#   SmartRecruiters: jobs.smartrecruiters.com/<slug>
-#   Recruitee:       <slug>.recruitee.com
-# Foco: fintech / startups remotas que suelen contratar desde LATAM/global.
+#   Greenhouse: boards.greenhouse.io/<slug> | Lever: jobs.lever.co/<slug>
+#   Ashby: jobs.ashbyhq.com/<slug> | SmartRecruiters: jobs.smartrecruiters.com/<slug>
+#   Recruitee: <slug>.recruitee.com
+# Foco: fintech / tech remota que suele contratar desde LATAM/global.
 
 greenhouse:
   - coinbase
@@ -28,9 +25,21 @@ greenhouse:
   - upstart
   - chime
   - betterment
+  - figma
+  - airtable
+  - discord
+  - asana
+  - flexport
+  - checkr
+  - faire
+  - webflow
+  - samsara
+  - toast
+  - block
 
 lever:
   - kavak
+  - spotify
 
 ashby:
   - deel
@@ -38,6 +47,8 @@ ashby:
   - kueski
   - runway
   - linear
+  - vanta
+  - replit
 
 smartrecruiters:
   - Visa
