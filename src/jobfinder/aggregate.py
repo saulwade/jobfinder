@@ -97,6 +97,12 @@ def _passes_filters(job, profile) -> bool:
     if job.source in HIGH_VOLUME and not _RELEVANT_TITLE.search(job.title):
         return False
 
+    # sueldo: si publica un mínimo y está por debajo del piso, descarta.
+    # Si no publica sueldo, se conserva (no se puede saber).
+    floor = target.get("min_salary_usd_year", 0)
+    if floor and job.salary_min_usd and job.salary_min_usd < floor:
+        return False
+
     return True
 
 

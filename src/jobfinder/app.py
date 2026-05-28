@@ -6,12 +6,15 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import sys
 from pathlib import Path
 
 import streamlit as st
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # para importar jobfinder
+from jobfinder import tailor  # noqa: E402  (tailoring bajo demanda)
 CFG = yaml.safe_load((ROOT / "config.yaml").read_text())
 DB = ROOT / CFG["database"]["path"]
 WEEKLY_TARGET = CFG["search"].get("weekly_application_target", 30)
@@ -193,12 +196,20 @@ def show_detail(job_id: int):
     c1, c2 = st.columns(2)
     c1.link_button("Abrir vacante ↗", job["url"], use_container_width=True)
     pdf = job.get("cv_path", "") or ""
-    if pdf.endswith(".pdf") and Path(pdf).exists():
+    has_cv = pdf.endswith(".pdf") and Path(pdf).exists()
+    if has_cv:
         c2.download_button("Descargar CV (PDF)", Path(pdf).read_bytes(),
                            file_name=Path(pdf).name, mime="application/pdf",
                            use_container_width=True)
     else:
-        c2.button("CV no generado", disabled=True, use_container_width=True)
+        if c2.button("✨ Generar CV + carta", use_container_width=True,
+                     type="primary", key=f"gen{job['id']}"):
+            with st.spinner("Generando materiales con IA (~15s)…"):
+                tailor.run(job_id=job["id"], verbose=False)
+            counts.clear()
+            load_jobs.clear()
+            st.toast("Materiales generados")
+            st.rerun()
 
     cur = job["status"] if job["status"] in PIPELINE else "tailored"
     new = st.radio("Estado de la postulación", PIPELINE, index=PIPELINE.index(cur),
@@ -234,7 +245,7 @@ with st.sidebar:
     st.markdown("### Filtros")
     sel_status = st.multiselect(
         "Estado", list(STATUS_LABELS.keys()),
-        default=["tailored", "applied", "interview"],
+        default=["matched", "tailored", "applied", "interview"],
         format_func=lambda s: STATUS_LABELS[s])
     min_score = st.slider("Score mínimo", 0, 100, 70, 5)
     query = st.text_input("Buscar", placeholder="título, empresa, skill…")
