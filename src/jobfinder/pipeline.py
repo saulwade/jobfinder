@@ -9,7 +9,7 @@ from __future__ import annotations
 import sys
 import time
 
-from . import aggregate, match, tailor
+from . import aggregate, digest, match, tailor
 
 
 def run(do_tailor: bool = True) -> dict:
@@ -26,6 +26,12 @@ def run(do_tailor: bool = True) -> dict:
         tai = tailor.run(verbose=True)
     else:
         print("\n== 3/3 Omitido (--no-tailor) ==")
+
+    print("\n== Resumen por correo ==")
+    try:
+        digest.send_if_configured(verbose=True)
+    except Exception as e:
+        print(f"[pipeline] no se pudo enviar el correo: {e}")
 
     dt = time.time() - t0
     print(f"\n=== PIPELINE LISTO en {dt:.0f}s ===")

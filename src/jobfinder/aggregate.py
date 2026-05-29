@@ -76,9 +76,22 @@ _RELEVANT_TITLE = re.compile(
 )
 
 
+# Marcadores de vacantes en idiomas que el candidato NO habla (alemán/francés).
+# Habla español + inglés; el portugués se tolera por cercanía.
+_FOREIGN_LANG = re.compile(
+    r"\(m/w/d\)|\(w/m/d\)|\(h/f\)|buchhalt|lohn|sachbearbeit|kaufmann|kauffrau|"
+    r"werkstudent|mitarbeiter|vertrieb|steuerberat|finanzbuch|"
+    r"comptable|gestionnaire|chargé|chargee", re.I,
+)
+
+
 def _passes_filters(job, profile) -> bool:
     target = profile["target"]
     blob = f"{job.title} {job.location} {job.description} {job.tags}".lower()
+
+    # idioma: descarta vacantes claramente en alemán/francés
+    if _FOREIGN_LANG.search(f"{job.title} {job.tags}"):
+        return False
 
     # remoto estricto: si no es claramente remoto, descarta
     if target.get("remote_only") and not is_remote(job):

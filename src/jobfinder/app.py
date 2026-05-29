@@ -113,17 +113,28 @@ def salary_str(d: dict) -> str:
 
 
 LATAM_SOURCES = {"getonboard", "torre"}
-_US_RE = re.compile(r"u\.s|united states|\bus\b|\beu\b|europe|\buk\b", re.I)
+# regiones/países que NO contratan desde México (restringidas)
+_RESTRICTED_RE = re.compile(
+    r"u\.s|united states|\bus\b|\beu\b|europe|\buk\b|united kingdom|"
+    r"india|gurugram|bengaluru|bangalore|mumbai|delhi|hyderabad|pune|chennai|noida|"
+    r"philippines|manila|pakistan|nigeria|canada|australia|deutschland|germany",
+    re.I,
+)
+# señales claras de que sí contrata desde cualquier lado
+_GLOBAL_RE = re.compile(r"worldwide|anywhere|global|latam|latin america|méxico|mexico",
+                        re.I)
 
 
 def geo_class(d: dict) -> tuple[str, str]:
-    """('mx', label) si contrata desde México/LATAM/global; ('us', label) si dudosa."""
+    """('mx', label) si contrata desde México/LATAM/global; ('us', label) si restringida."""
     _, flags = reasons_of(d)
     if d.get("source") in LATAM_SOURCES:
         return "mx", "🌎 LATAM"
     loc = d.get("location") or ""
-    if "geo_restricted" in flags or _US_RE.search(loc):
-        return "us", "🇺🇸 US/EU only"
+    if _GLOBAL_RE.search(loc):
+        return "mx", "🌎 Global"
+    if "geo_restricted" in flags or _RESTRICTED_RE.search(loc):
+        return "us", "⚠️ Fuera LATAM"
     return "mx", "🌎 Global"
 
 # ----------------------------- styling ------------------------------------
@@ -271,7 +282,7 @@ with st.sidebar:
         "Estado", list(STATUS_LABELS.keys()),
         default=["matched", "tailored", "applied", "interview"],
         format_func=lambda s: STATUS_LABELS[s])
-    min_score = st.slider("Score mínimo", 0, 100, 70, 5)
+    min_score = st.slider("Score mínimo", 0, 100, 65, 5)
     solo_mx = st.checkbox("Solo las que contratan desde México", value=False)
     query = st.text_input("Buscar", placeholder="título, empresa, skill…")
     st.divider()
@@ -292,11 +303,12 @@ for d in jobs:
     reasons, _ = reasons_of(d)
     sal = salary_str(d)
     gc_cls, gc_lab = geo_class(d)
+    company = d['company'] or "(empresa no listada)"
     with st.container(border=True):
         st.markdown(
             f"<div class='title-row'><p class='j-title'>{d['title']}</p>"
             f"{score_badge(d['match_score'])}</div>"
-            f"<p class='j-meta'>{d['company']} · {d['location']}"
+            f"<p class='j-meta'>{company} · {d['location']}"
             f"{' · ' + sal if sal else ''}</p>"
             f"<p class='j-reason'>{reasons[:150]}</p>"
             f"{status_pill(d['status'])}"

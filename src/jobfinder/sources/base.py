@@ -33,12 +33,27 @@ class Job:
         self.title = clean(self.title)
         self.company = clean(self.company)
         self.location = clean(self.location)
-        self.fingerprint = make_fingerprint(self.title, self.company)
+        # huella: título+empresa; si no hay empresa, usa url/external_id para no
+        # colisionar vacantes distintas con el mismo título.
+        key2 = self.company or self.url or self.external_id
+        self.fingerprint = make_fingerprint(self.title, key2)
         if self.salary_text:
             lo, hi = parse_salary_usd(self.salary_text)
             self.salary_min_usd = self.salary_min_usd or lo
             self.salary_max_usd = self.salary_max_usd or hi
+        self._sanitize_salary()
         return self
+
+    def _sanitize_salary(self) -> None:
+        """Anula sueldos absurdos/mal parseados (spam tipo $1M, rangos locos)."""
+        lo, hi = self.salary_min_usd, self.salary_max_usd
+        # techo razonable para roles junior/mid; arriba de esto = mal dato
+        if (hi and hi > 400_000) or (lo and lo > 300_000):
+            self.salary_min_usd = self.salary_max_usd = None
+            return
+        # rango con factor disparatado (ej. 50k–1.08M) = mal parseado
+        if lo and hi and lo > 0 and hi / lo > 8:
+            self.salary_min_usd = self.salary_max_usd = None
 
     def as_row(self) -> dict:
         return asdict(self)
