@@ -5,6 +5,7 @@ Correr:  .venv/bin/streamlit run src/jobfinder/app.py
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -110,6 +111,21 @@ def salary_str(d: dict) -> str:
     hi = f"–{d['salary_max_usd']:,}" if d.get("salary_max_usd") else ""
     return f"${d['salary_min_usd']:,}{hi} USD"
 
+
+LATAM_SOURCES = {"getonboard", "torre"}
+_US_RE = re.compile(r"u\.s|united states|\bus\b|\beu\b|europe|\buk\b", re.I)
+
+
+def geo_class(d: dict) -> tuple[str, str]:
+    """('mx', label) si contrata desde México/LATAM/global; ('us', label) si dudosa."""
+    _, flags = reasons_of(d)
+    if d.get("source") in LATAM_SOURCES:
+        return "mx", "🌎 LATAM"
+    loc = d.get("location") or ""
+    if "geo_restricted" in flags or _US_RE.search(loc):
+        return "us", "🇺🇸 US/EU only"
+    return "mx", "🌎 Global"
+
 # ----------------------------- styling ------------------------------------
 
 CSS = """
@@ -150,6 +166,11 @@ div[data-testid="stMetricLabel"] p { color:#71717a; font-size:.76rem; font-weigh
 .flag { display:inline-block; font-size:.7rem; color:#52525b; background:#f4f4f5;
   border:1px solid #e4e4e7; border-radius:6px; padding:1px 7px; margin:0 4px 4px 0; }
 
+.geo { display:inline-block; font-size:.72rem; font-weight:600; padding:2px 8px;
+  border-radius:999px; border:1px solid; margin-left:6px; }
+.geo-mx { background:#ecfdf3; color:#067647; border-color:#abefc6; }
+.geo-us { background:#fef6e7; color:#92600a; border-color:#fce4a6; }
+
 .stButton button, .stLinkButton a { border-radius:9px; font-weight:500; }
 
 /* preview de documentos en el modal: encabezados a tamaño legible */
@@ -181,12 +202,15 @@ def show_detail(job_id: int):
     reasons, flags = reasons_of(job)
     sal = salary_str(job)
 
+    gc_cls, gc_lab = geo_class(job)
     st.markdown(f"### {job['title']}")
     meta = f"{job['company']} · {job['location']} · vía {job['source']}"
     if sal:
         meta += f" · {sal}"
-    st.markdown(f"<p class='j-meta'>{meta} {score_badge(job['match_score'])}</p>",
-                unsafe_allow_html=True)
+    st.markdown(
+        f"<p class='j-meta'>{meta} {score_badge(job['match_score'])}"
+        f"<span class='geo geo-{gc_cls}'>{gc_lab}</span></p>",
+        unsafe_allow_html=True)
     if flags:
         st.markdown("".join(f"<span class='flag'>{f}</span>" for f in flags),
                     unsafe_allow_html=True)
@@ -248,12 +272,15 @@ with st.sidebar:
         default=["matched", "tailored", "applied", "interview"],
         format_func=lambda s: STATUS_LABELS[s])
     min_score = st.slider("Score mínimo", 0, 100, 70, 5)
+    solo_mx = st.checkbox("Solo las que contratan desde México", value=False)
     query = st.text_input("Buscar", placeholder="título, empresa, skill…")
     st.divider()
     st.caption("Fuentes activas")
     st.caption(", ".join(k for k, v in CFG["sources"].items() if v.get("enabled")))
 
 jobs = load_jobs(tuple(sel_status), min_score, query)
+if solo_mx:
+    jobs = [d for d in jobs if geo_class(d)[0] == "mx"]
 
 st.write("")
 st.markdown(f"**{len(jobs)} vacantes**")
@@ -264,6 +291,7 @@ if not jobs:
 for d in jobs:
     reasons, _ = reasons_of(d)
     sal = salary_str(d)
+    gc_cls, gc_lab = geo_class(d)
     with st.container(border=True):
         st.markdown(
             f"<div class='title-row'><p class='j-title'>{d['title']}</p>"
@@ -271,7 +299,8 @@ for d in jobs:
             f"<p class='j-meta'>{d['company']} · {d['location']}"
             f"{' · ' + sal if sal else ''}</p>"
             f"<p class='j-reason'>{reasons[:150]}</p>"
-            f"{status_pill(d['status'])}",
+            f"{status_pill(d['status'])}"
+            f"<span class='geo geo-{gc_cls}'>{gc_lab}</span>",
             unsafe_allow_html=True)
         b1, b2 = st.columns([1, 1])
         if b1.button("Ver materiales", key=f"d{d['id']}", use_container_width=True,
